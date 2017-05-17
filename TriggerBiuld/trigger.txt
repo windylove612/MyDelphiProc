@@ -1,0 +1,29 @@
+create sequence BFCRM8.S_WX_CENTPSWVERIFY;
+/
+create or replace trigger BFCRM8.TIB_WX_CENTPSWVERIFY before insert 
+on BFCRM8.WX_CENTPSWVERIFY for each row
+declare
+     integrity_error  exception;
+     errno            integer;
+     errmsg           char(200);
+begin
+    select BFCRM8.S_WX_CENTPSWVERIFY.NextVal into :NEW.TM from dual;
+exception
+    when integrity_error then
+         raise_application_error(errno, errmsg);
+end;
+/
+create or replace trigger BFCRM8.TIU_WX_CENTPSWVERIFY before update 
+on BFCRM8.WX_CENTPSWVERIFY for each row
+declare
+     integrity_error  exception;
+     errno            integer;
+     errmsg           char(200);
+begin
+    select BFCRM8.S_WX_CENTPSWVERIFY.NextVal into :NEW.TM from dual;
+exception
+    when integrity_error then
+         raise_application_error(errno, errmsg);
+end;
+/
+
