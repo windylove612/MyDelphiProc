@@ -1,0 +1,55 @@
+Protection Options for Project1.exe
+-----------------------------------
+
+Macros Information
+------------------
+VM Macros: 0
+CodeReplace Macros: 0
+ENCRYPT Macros: 0
+CLEAR Macros: 0
+
+
+XBundler files
+--------------
+No files to bundle
+
+
+Protection Options
+------------------
+Anti-Debugger: ENABLED
+Anti-Dumpers: ENABLED
+API-Wrapping: ENABLED
+Virtual Machine: ENABLED
+Entry Point Ofuscation: ENABLED
+Memory Guard: ENABLED
+Anti-File Monitor: ENABLED
+Anti-Registry Monitor: ENABLED
+Resource Encryption: ENABLED
+VMWare compatible: ENABLED
+Delphi/BCB form protection: ENABLED
+
+
+Advanced Protection Options
+---------------------------
+Encrypt Application: ENABLED
+.NET assemblies: ENABLED
+DLL plugin: DISABLED
+Active Context: DISABLED
+Last Section Name: Themida
+
+
+Compression
+-----------
+Application compression: ENABLED
+Resources compression: ENABLED
+SecureEngine compression: ENABLED
+
+
+Virtual Machine Settings
+------------------------
+Number of Virtual APIs wrapped: 0
+Entry Point Virtualization: 15 instructions
+Virtual Machine Processor: Mutable RISC-64 processor
+Number of CPUs: 1
+Opcode Type: Metamorphic - Level 1
+Dynamic Opcode: 20% Dynamic

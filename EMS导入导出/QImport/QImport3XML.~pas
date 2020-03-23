@@ -1,0 +1,1467 @@
+﻿unit QImport3XML;
+
+{$I QImport3VerCtrl.Inc}
+
+interface
+
+uses
+  {$IFDEF VCL16}
+    System.Classes,
+    System.IniFiles,
+    Data.DB,
+    System.DateUtils,
+  {$ELSE}
+    Classes,
+    DB,
+    IniFiles,
+    {$IFDEF VCL6}
+     DateUtils,
+    {$ENDIF}
+  {$ENDIF}
+  QImport3,
+  {$IFDEF QI_UNICODE}
+    QImport3GpTextFile, QImport3GpTextStream,
+  {$ENDIF}
+  QImport3StrTypes;
+
+  const
+    EndL = #13#10;
+    sSchemaNotFound = 'Schema file %s not found!';
+
+type
+
+  TQIXMLDocType = (xtDataPacket2, xtAccess);
+
+  TXMLTagList = class;
+
+  TXMLTag = class(TCollectionItem)
+  private
+    FParent: TXMLTag;
+    FTagList: TXMLTagList;
+//    FName: string;
+    FName: qiString;
+    FAttributes: TqiStrings;
+    FAttrNames: TqiStrings;
+    FChildren: TXMLTagList;
+
+    procedure SetAttributes(Value: TqiStrings);
+    procedure SetChildren(Value: TXMLTagList);
+  public
+    constructor Create(Collection: TCollection); override;
+    destructor Destroy; override;
+    property Parent: TXMLTag read FParent;
+    property TagList: TXMLTagList read FTagList;
+//    property Name: string read FName write FName;
+    property Name: qiString read FName write FName;
+    property Attributes: TqiStrings read FAttributes write SetAttributes;
+    property Children: TXMLTagList read FChildren write SetChildren;
+  end;
+
+  TXMLTagList = class(TCollection)
+  private
+    FParent: TxmlTag;
+    function GetItem(Index: integer): TXMLTag;
+    procedure SetItem(Index: integer; Value: TXMLTag);
+  public
+    constructor Create(Parent: TxmlTag);
+    function Add: TXMLTag;
+    property Parent: TxmlTag read FParent;
+    property Items[Index: integer]: TXMLTag read GetItem write SetItem; default;
+  end;
+
+  TXMLFile = class
+  private
+    {$IFDEF QI_UNICODE}
+    FFileWide: TGpTextStream; //TGpTextFile
+    FEncoding: TQICharsetType;
+    {$ELSE}
+    FStream: TFileStream;
+    {$ENDIF}
+    FData: AnsiString;
+    FFileName: string;
+    FHeader: TXMLTag;
+    FTags: TXMLTagList;
+    FLoaded: boolean;
+    FEof: boolean;
+    FPosition: integer;
+    FFileType: TQIXMLDocType;
+
+    procedure SetHeader(Value: TXMLTag);
+    procedure SetTags(Value: TXMLTagList);
+    function GetFields: TXMLTagList;
+    function GetFieldCount: integer;
+    function GetRows: TXMLTagList;
+    function GetRowCount: integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Open;
+    procedure Close;
+    function GetNextTag: TxmlTag;
+    procedure Load(FieldsOnly: boolean);
+    procedure Clear;
+    function IsCurrentFile: Boolean;
+
+    property FileName: string read FFileName write FFileName;
+    property Header: TXMLTag read FHeader write SetHeader;
+    property Tags: TXMLTagList read FTags write SetTags;
+    property Fields: TXMLTagList read GetFields;
+    property FieldCount: integer read GetFieldCount;
+    property Rows: TXMLTagList read GetRows;
+    property RowCount: integer read GetRowCount;
+
+    property Eof: boolean read FEof;
+    {$IFDEF QI_UNICODE}
+    property Encoding: TQICharsetType read FEncoding write FEncoding
+      default ctWinDefined;
+    {$ENDIF}
+    property FileType: TQIXMLDocType read FFileType write FFileType;
+  end;
+
+  TQImport3XML = class(TQImport3)
+  private
+    FXML: TXMLFile;
+    FCounter: integer;
+    FWriteOnFly: boolean;
+    FXMLTag: TXMLTag;
+    {$IFDEF QI_UNICODE}
+    FEncoding: TQICharsetType;
+    {$ENDIF}
+    FDocumentType: TQIXMLDocType;
+  protected
+    function GetDateTimeValue(const AValue: qiString): Variant; override;
+    procedure BeforeImport; override;
+    procedure AfterImport; override;
+    procedure StartImport; override;
+    function CheckCondition: boolean; override;
+    procedure ChangeCondition; override;
+    procedure FinishImport; override;
+    procedure FillImportRow; override;
+    function Skip: boolean; override;
+    function ImportData: TQImportResult; override;
+
+    procedure DoLoadConfiguration(IniFile: TIniFile); override;
+    procedure DoSaveConfiguration(IniFile: TIniFile); override;
+    function GetStringValue(const AValue: qiString; const AFieldType: TFieldType): Variant; override;
+    function GetFloatValue(const AValue: qiString; const AFieldType: TFieldType):
+        Variant; override;
+    function GetIntegerValue(const AValue: qiString; const AFieldType: TFieldType):
+        Variant; override;
+    function GetBitesValue(const AValue: qiString): Variant; override;        
+    function CheckBinaryData(AValue: qiString): Variant;
+  public
+    constructor Create(AOwner: TComponent); override;
+  published
+    property FileName;
+    property SkipFirstRows default 0;
+    property WriteOnFly: boolean read FWriteOnFly write FWriteOnFly
+      default false;
+    {$IFDEF QI_UNICODE}
+    property Encoding: TQICharsetType read FEncoding write FEncoding
+      default ctWinDefined;
+    {$ENDIF}
+    property DocumentType: TQIXMLDocType read FDocumentType write FDocumentType default xtDataPacket2;
+  end;
+
+//function ParseXML(XMLFile: TXMLFile; const XML: string; FieldsOnly,
+function ParseXML(XMLFile: TXMLFile; const XML: string; FieldsOnly,
+  OneTag: boolean): TXMLTag;
+
+procedure ParseAccessXMLFields(XMLFile: TXMLFile; const XML: String);
+procedure ParseAccessXMLData(XMLFile: TXMLFile; const XML: String;
+RowsTag, FieldsTag: TXMLTag; const NoSchema: Boolean);
+
+function CorrectStr(AStr: QIString): QIString;
+function CorrectStr2(AStr: QIString): QIString;
+
+
+implementation
+
+uses
+  {$IFDEF VCL16}
+    System.SysUtils,
+    System.Math,
+    Winapi.Windows,
+  {$ELSE}
+    SysUtils,
+    Math,
+    Windows,
+  {$ENDIF}
+  QImport3Common;
+
+const
+  sFileNameNotDefined = 'File name is not defined';
+  sFileNotFound = 'File %s not found';
+  sXMLHeaderFailed = 'XML header failed';
+  sFileNotXML = 'File %s is not in XML format';
+  sUnexpectedSymbol = 'Unexpected symbol %s at position %d';
+  sVersionAttributeExpected = 'Version attribute expected but $s found';
+  sInvalidXMLDeclaration = 'Invalid XML declaration';
+  sAttributeDuplicates = 'Attribute %s duplicates';
+  sUnexpectedAttributeName = 'Unexpected attriute name %s';
+  sExpectingOneButOtherFound = 'Expecting %s but %s found';
+  sUnexpectedTagName = 'Unexpected tag name %s';
+  sCorrespondingTagNotFound = '%s - corresponding tag not found';
+
+const
+  sWhiteSpace = [#$20, #$9, #$D, #$A];
+  sWhiteSpaceName = [#$9, #$D, #$A];
+  sLetter     = [#$41..#$5A, #$61..#$7A, #$C0..#$D6, #$D8..#$F6, #$F8..#$FF];
+  sNumber     = [#$30..#$39];
+  sNameChar   = sLetter + sNumber + ['.', '-', '_', ':', #$B7];
+  sNameStart  = sLetter + ['_', ':'];
+  sQuote      = ['"', ''''];
+  sSlash      = '/';
+
+  sQuot       = '"'; sQuotEncode = '&quot;';
+  sAmp        = '&'; sAmpEncode  = '&amp;';
+  sLt         = '<'; sLtEncode   = '&lt;';
+  sGt         = '>'; sGtEncode   = '&gt;';
+  sSp         = ' '; sSpEncode   = '&#160;';
+
+  sEqual      = '=';
+  sQuestion   = '?';
+
+  sDATAPACKET = 'DATAPACKET';
+  sMETADATA   = 'METADATA';
+  sFIELDS     = 'FIELDS';
+  sFIELD      = 'FIELD';
+  sROWDATA    = 'ROWDATA';
+  sROW        = 'ROW';
+
+type
+  TxmlState = (stWaitXMLDecl, stReadXMLDecl, stWaitTag, stReadTag, stBreak);
+  TxmlTagState = (tstUnknown, tstWaitXMLDecl, tstWaitTagName, tstReadTagName,
+    tstWaitAttrName, tstReadAttrName, tstWaitEqual, tstWaitAttrValue,
+    tstReadAttrValue);
+
+
+function ParseXML(XMLFile: TXMLFile; const XML: string; FieldsOnly,
+  OneTag: boolean): TxmlTag;
+var
+//  i: integer;
+  ch: Char;
+  st: TxmlState;
+  buf: string;
+  FAttributes: TqiStrings;
+  FTag: TXMLTag;
+  FAttrName, FAttrValue: string;
+
+  {procedure CheckTagName(const TagName: AnsiString);
+  var
+    WaitTagName: AnsiString;
+  begin
+    if not Assigned(FTag) then begin
+      if AnsiCompareText(TagName, sDATAPACKET) = 0 then begin
+        FTag := XMLFile.Tags.Add;
+        FTag.Name := TagName;
+      end
+      else raise Exception.CreateFmt(sUnexpectedTagName, [TagName]);
+    end
+    else begin
+      if (AnsiUpperCase(FTag.Name) = sDATAPACKET) then
+        WaitTagName := sMETADATA
+      else if (AnsiUpperCase(FTag.Name) = sMETADATA) then
+        WaitTagName := sFIELDS
+      else if (AnsiUpperCase(FTag.Name) = sFIELD)
+    end
+  end;}
+
+  procedure CheckAttributeName(const AttrName: string);
+  var
+    i: integer;
+  begin
+    case st of
+      stReadXMLDecl: begin
+        if XMLFile.Header.Attributes.Count = 0 then begin
+          if AttrName <> 'version' then
+            raise Exception.CreateFmt(sVersionAttributeExpected, [AttrName]);
+        end
+        else if (AttrName = 'standalone') or (AttrName = 'encoding') then begin
+          for i := 0 to XMLFile.Header.Attributes.Count - 1 do
+            if XMLFile.Header.Attributes[i] = FAttrName then
+              raise Exception.CreateFmt(sAttributeDuplicates, [FAttrName]);
+        end
+        else raise Exception.CreateFmt(sUnexpectedAttributeName, [AttrName]);
+      end;
+    end;
+    FAttrName := AttrName;
+  end;
+
+//  procedure ReadAttributes(const AttrStr: string);
+  procedure ReadAttributes(const AttrStr: qiString);
+  var
+    i: integer;
+    tst: TxmlTagState;
+//    ch: Char;
+    ch: qiChar;
+//    buf: string;
+    buf: qiString;
+//    qu: Char;
+    qu: qiChar;
+  begin
+    tst := tstWaitAttrName;
+    buf := EmptyStr;
+    qu := #0;
+    for i := 1 to Length(AttrStr) do begin
+      ch := AttrStr[i];
+      case tst of
+        tstWaitAttrName: begin
+          if QImport3Common.CharInSet(ch, sWhiteSpace) then
+            tst := tstWaitAttrName
+          else if QImport3Common.CharInSet(ch, sNameStart) then begin
+            tst := tstReadAttrName;
+            buf := EmptyStr;
+          end
+          else
+          raise Exception.CreateFmt(sUnexpectedSymbol, [ch, i]);
+        end;
+        tstReadAttrName: begin
+          if QImport3Common.CharInSet(ch, sNameChar) then
+            tst := tstReadAttrName
+          else if QImport3Common.CharInSet(ch, sWhiteSpace) then begin
+            CheckAttributeName(buf);
+            tst := tstWaitEqual;
+          end
+          else if ch = sEqual then begin
+            CheckAttributeName(buf);
+            tst := tstWaitAttrValue;
+          end
+          else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, i]);
+        end;
+        tstWaitEqual: begin
+          if QImport3Common.CharInSet(ch, sWhiteSpace) then
+            tst := tstWaitEqual
+          else if ch = sEqual then
+            tst := tstWaitAttrValue
+          else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, i]);
+        end;
+        tstWaitAttrValue: begin
+          if QImport3Common.CharInSet(ch, sWhiteSpace) then
+            tst := tstWaitAttrValue
+          else if QImport3Common.CharInSet(ch, sQuote) then begin
+            qu := ch;
+            tst := tstReadAttrValue;
+            buf := EmptyStr;
+            Continue;
+          end
+          else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, i]);
+        end;
+        tstReadAttrValue: begin
+          if QImport3Common.CharInSet(ch, sQuote) and (ch = qu) then begin
+            FAttrValue := buf;
+            if Assigned(FAttributes) then begin
+              FAttributes.Values[FAttrName] := FAttrValue;
+              tst := tstWaitAttrName;
+              buf := EmptyStr;
+              FAttrName := EmptyStr;
+              FAttrValue := EmptyStr;
+            end;
+            qu := #0;
+          end;
+        end;
+      end;
+      buf := buf + ch;
+    end;
+  end;
+
+  procedure FastReadAttributes(const AttrStr: qiString; ATag: TXMLTag);
+  var
+    TempStr, CurAttrName, CurAttrValue, BegValue, QStr: qiString;
+  begin
+    TempStr := AttrStr;
+    BegValue := QIString('="');
+    QStr := QIString('"');
+    while Pos(BegValue, TempStr) > 0 do
+    begin
+      CurAttrName := Trim(Copy(TempStr, 1, Pos(BegValue, TempStr) - 1));
+      TempStr := Trim(StringReplace(TempStr, CurAttrName + BegValue,'',[]));
+      CurAttrValue := Copy(TempStr, 1, Pos(QStr, TempStr) - 1);
+      TempStr := StringReplace(TempStr, CurAttrValue + QStr,'',[]);
+      if Assigned(FAttributes) then
+        FAttributes.Values[CurAttrName] := CurAttrValue;
+      if Assigned(ATag.FAttrNames) then
+        if (ATag.FAttrNames.IndexOf(CurAttrName) = -1) then
+          ATag.FAttrNames.Add(CurAttrName);
+    end;
+  end;
+
+
+//  procedure ParseXMLTag(const Tag: string);
+  procedure ParseXMLTag(const Tag: qiString);
+  var
+    i: integer;
+//    ch: Char;
+    ch: qiChar;
+//    buf: string;
+    buf: qiString;
+    tst: TxmlTagState;
+    TagList: TXMLTagList;
+    NewTag: TXMLTag;
+  begin
+    buf := EmptyStr;
+    case st of
+      stReadXMLDecl: begin
+        buf := Copy(Tag, 1, 4);
+        if (buf = '?xml') and (Tag[Length(Tag)] = '?') then begin
+          FAttributes := XMLFile.Header.Attributes;
+          buf := Copy(Tag, 5, Length(Tag) - 5);
+          ReadAttributes(buf);
+          //utf-8
+//          XMLFile.Futf8 := (AnsiUpperCase(FAttributes.Values['encoding']) = 'UTF-8');
+        end
+        else raise Exception.Create(sXMLHeaderFailed)
+      end;
+      stReadTag: begin
+        tst := tstWaitTagName;
+        for i := 1 to Length(Tag) do begin
+          ch := Tag[i];
+          case tst of
+            tstWaitTagName: begin
+              if QImport3Common.CharInSet(ch, sNameStart + [sSlash]) then
+                tst := tstReadTagName
+              else raise Exception.CreateFmt(sUnexpectedSymbol, [string(ch), i]);
+            end;
+            tstReadTagName: begin
+              if QImport3Common.CharInSet(ch, sNameChar) then
+                tst := tstReadTagName
+              else if QImport3Common.CharInSet(ch,sWhiteSpace) then
+                Break
+              else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, i]);
+            end;
+          end;
+          buf := buf + ch;
+        end;
+
+        if buf[1] = sSlash then begin
+          if not OneTag then begin
+            if not (Assigned(FTag) and
+               (Copy(buf, 2, Length(buf) - 1) = FTag.Name)) then
+              raise Exception.CreateFmt(sCorrespondingTagNotFound, [buf]);
+            FTag := FTag.Parent;
+            if (AnsiUpperCase(buf) = sSlash + sFields) and FieldsOnly then
+              st := stBreak;
+          end
+        end
+        else begin
+          //CheckTagName(buf);
+
+          if not OneTag then begin
+            if not Assigned(FTag)
+              then TagList := XMLFile.Tags
+              else TagList := FTag.Children;
+
+            NewTag := TagList.Add;
+          end
+          else NewTag := TXMLTag.Create(nil);
+
+          NewTag.Name := buf;
+          FAttributes := NewTag.Attributes;
+          if Tag[Length(Tag)] <> sSlash then FTag := NewTag;
+
+          buf := Copy(Tag, Length(buf) + 1,
+            Length(Tag) - Length(buf) - Integer(Tag[Length(Tag)] = sSlash));
+          //ReadAttributes(buf);
+          FastReadAttributes(buf, NewTag);
+
+          //*****
+          Result := NewTag;
+          //if Assigned(XMLFile.OnLoadTag) then XMLFile.OnLoadTag(XMLFile, NewTag);
+        end;
+      end;
+    end;
+  end;
+
+begin
+  Result := nil;
+  buf := EmptyStr;
+  if XMLFile.FPosition = 1
+    then st := stWaitXMLDecl
+    else st := stWaitTag;
+  FAttributes := nil;
+  FTag := nil;
+  FAttrName := EmptyStr;
+  FAttrValue := EmptyStr;
+  //i := 1;
+
+  while XMLFile.FPosition <{=} Length(XML) do begin
+    ch := XML[XMLFile.FPosition];
+
+    case st of
+      stWaitXMLDecl: begin
+        if QImport3Common.CharInSet(ch, sWhiteSpace) then
+          st := stWaitXMLDecl
+        else if ch = sLt then begin
+          st := stReadXMLDecl;
+          FAttributes := XMLFile.Header.Attributes;
+          buf := EmptyStr;
+          Inc(XMLFile.FPosition);
+          Continue;
+        end
+        else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, XMLFile.FPosition]);
+      end;
+      stReadXMLDecl: begin
+        if ch = sGt then begin
+          ParseXMLTag(buf);
+          st := stWaitTag;
+        end;
+      end;
+      stWaitTag: begin
+        if QImport3Common.CharInSet(ch, sWhiteSpace) then
+          st := stWaitTag
+        else if ch = sLt then begin
+          st := stReadTag;
+          buf := EmptyStr;
+          Inc(XMLFile.FPosition);
+          Continue;
+        end
+        else raise Exception.CreateFmt(sUnexpectedSymbol, [ch, XMLFile.FPosition]);
+      end;
+      stReadTag: begin
+        if ch = sGt then begin
+          ParseXMLTag(buf);
+          if OneTag then begin
+            Inc(XMLFile.FPosition);
+            Exit;
+          end;
+          st := stWaitTag;
+        end;
+      end;
+      stBreak: Exit;
+    end;
+
+    buf := buf + ch;
+    Inc(XMLFile.FPosition);
+  end;
+  XMLFile.FEof := true;
+end;
+
+{ TXMLTag }
+
+constructor TXMLTag.Create(Collection: TCollection);
+begin
+  inherited;
+  FTagList := nil;
+  if Collection is TXMLTagList then
+    FTagList := Collection as TXMLTagList;
+  FParent := nil;
+  if Assigned(FTagList) and Assigned(FTagList.Parent) then
+    FParent := FTagList.Parent;
+  FAttributes := TqiStringList.Create;
+  FAttrNames := TqiStringList.Create;
+  FChildren := TXMLTagList.Create(Self);
+end;
+
+destructor TXMLTag.Destroy;
+begin
+  FChildren.Free;
+  FAttributes.Free;
+  FAttrNames.Free;
+  inherited;
+end;
+
+
+
+procedure TXMLTag.SetAttributes(Value: TqiStrings);
+begin
+  FAttributes.Assign(Value);
+end;
+
+procedure TXMLTag.SetChildren(Value: TXMLTagList);
+begin
+  FChildren.Assign(Value);
+end;
+
+{ TXMLTagList }
+
+function TXMLTagList.Add: TXMLTag;
+begin
+  Result := TXMLTag(inherited Add)
+end;
+
+constructor TXMLTagList.Create(Parent: TxmlTag);
+begin
+  inherited Create(TXMLTag);
+  FParent := Parent;
+end;
+
+function TXMLTagList.GetItem(Index: integer): TXMLTag;
+begin
+  Result := TXMLTag(inherited Items[Index]);
+end;
+
+procedure TXMLTagList.SetItem(Index: integer; Value: TXMLTag);
+begin
+  inherited Items[Index] := Value;
+end;
+
+{ TXMLFile }
+
+constructor TXMLFile.Create;
+begin
+  inherited;
+  FHeader := TXMLTag.Create(nil);
+  FTags := TXMLTagList.Create(nil);
+  FLoaded := false;
+  FEof := true;
+  {$IFDEF QI_UNICODE}
+  FEncoding := ctWinDefined;
+  {$ENDIF}
+  FFileType := xtDataPacket2;
+end;
+
+destructor TXMLFile.Destroy;
+begin
+  FTags.Free;
+  FHeader.Free;
+  inherited;
+end;
+
+procedure TXMLFile.Open;
+{$IFDEF QI_UNICODE}
+var
+  DataW: WideString;
+  F: TFileStream;
+  S: TStringStream;
+{$ENDIF}
+begin
+  if FFileName = EmptyStr then
+    raise Exception.Create(sFileNameNotDefined);
+  if not FileExists(FFileName) then
+    raise Exception.CreateFmt(sFileNotFound, [FFileName]);
+
+  {$IFDEF QI_UNICODE}
+{  FFileWide := TGpTextFile.CreateEx(FileName, FILE_ATTRIBUTE_NORMAL,
+    GENERIC_READ, FILE_SHARE_READ);
+  FFileWide.Reset;
+  FFileWide.Codepage := QICharsetToCodepage(FEncoding);
+
+  DataW := '';
+  while not FFileWide.EOF do
+    DataW := DataW + FFileWide.Readln;
+    FData := AnsiString(DataW);  igorp - c TGpTextStream ïîëó÷àåòñÿ áûñòðåå}
+  F := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
+  S := TStringStream.Create('');
+  try
+    if ExtractFileExt(FFilename) = '.xsd' then
+    begin
+      DataW := '';
+      F.Position := 0;
+      SetLength(FData, F.Size);
+      F.Read(FData[1], F.Size);
+      FData := AnsiString(CorrectStr(QISTring(FData)));
+    end else begin
+      F.Position := 0;
+      FFileWide := TGpTextStream.Create(F, tsaccRead,
+       [tscfUnicode], QICharsetToCodepage(FEncoding));
+      try
+        FFileWide.Position := 0;
+        S.Position := 0;
+        S.CopyFrom(FFileWide, FFileWide.Size);
+        S.Position := 0;
+        FData := AnsiString(S.DataString);
+      finally
+        S.Free;
+        FFileWide.Free;
+        FFileWide := nil;
+      end;
+    end;
+  finally
+    F.Free;
+  end;
+
+  {$ELSE}
+  FStream := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
+  FStream.Position := 0;
+  SetLength(FData, FStream.Size);
+  FStream.Read(FData[1], FStream.Size);
+  {$ENDIF}
+  FPosition := 1;
+  FEof := false;
+end;
+
+procedure TXMLFile.Close;
+begin
+  {$IFDEF QI_UNICODE}
+  if Assigned(FFileWide) then
+    FFileWide.Free;
+  {$ELSE}
+  FStream.Free;
+  {$ENDIF}
+  FEof := true;
+end;
+
+function TXMLFile.GetNextTag: TxmlTag;
+begin
+  Result := ParseXML(Self, string(FData), false, true);
+end;
+
+procedure TXMLFile.Load(FieldsOnly: boolean);
+{var
+  FStream: TFileStream;}
+begin
+  {if FFileName = EmptyStr then
+    raise Exception.Create(sFileNameNotDefined);
+  if not FileExists(FFileName) then
+    raise Exception.CreateFmt(sFileNotFound, [FFileName]);
+
+  FStream := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);}
+  Open;
+  try
+    {FStream.Position := 0;
+    SetLength(FData, FStream.Size);
+    FStream.Read(FData[1], FStream.Size);}
+    if FileType = xtAccess then
+      ParseAccessXMLFields(Self, string(FData))
+    else
+      ParseXML(Self, string(FData), FieldsOnly, false);
+    FLoaded := true;
+  finally
+    Close;
+    //FStream.Free;
+  end;
+end;
+
+procedure TXMLFile.Clear;
+begin
+  Header.Name := EmptyStr;
+  Header.Attributes.Clear;
+  Header.Children.Clear;
+  Tags.Clear;
+  FLoaded := false;
+end;
+
+procedure TXMLFile.SetHeader(Value: TXMLTag);
+begin
+  FHeader.Assign(Value);
+end;
+
+procedure TXMLFile.SetTags(Value: TXMLTagList);
+begin
+  FTags.Assign(Value);
+end;
+
+function TXMLFile.GetFields: TXMLTagList;
+var
+  i, j, k: integer;
+begin
+ Result := nil;
+ for i := 0 to Tags.Count - 1 do
+    if AnsiCompareText(Tags[i].Name, sDATAPACKET) = 0 then
+      for j := 0 to Tags[i].Children.Count - 1 do
+        if AnsiCompareText(Tags[i].Children[j].Name, sMETADATA) = 0 then
+          for k := 0 to Tags[i].Children[j].Children.Count - 1 do
+            if AnsiCompareText(Tags[i].Children[j].Children[k].Name, sFIELDS) = 0 then
+              Result := Tags[i].Children[j].Children[k].Children;
+end;
+
+function TXMLFile.GetFieldCount: integer;
+var
+  List: TXMLTagList;
+begin
+  Result := 0;
+  if not FLoaded then Exit;
+  List := GetFields;
+  if Assigned(List) then Result := List.Count;
+end;
+
+function TXMLFile.GetRows: TXMLTagList;
+var
+  i, j: integer;
+begin
+  Result := nil;
+  for i := 0 to Tags.Count - 1 do
+    if AnsiCompareText(Tags[i].Name, sDATAPACKET) = 0 then
+      for j := 0 to Tags[i].Children.Count - 1 do
+        if AnsiCompareText(Tags[i].Children[j].Name, sROWDATA) = 0 then
+          Result := Tags[i].Children[j].Children;
+end;
+
+function TXMLFile.IsCurrentFile: Boolean;
+begin
+  FileType := xtDataPacket2;
+  try
+    Load(True);
+    Result := True;
+  except
+    FileType := xtAccess;
+  try
+    Load(True);
+    Result := True;
+  except
+    Result := False;
+  end;
+end;
+end;
+
+function TXMLFile.GetRowCount: integer;
+var
+  List: TXMLTagList;
+begin
+  Result := 0;
+  if not FLoaded then Exit;
+  List := GetRows;
+  if Assigned(List) then Result := List.Count;
+end;
+
+{ TQImport3XML }
+
+constructor TQImport3XML.Create(AOwner: TComponent);
+begin
+  inherited;
+  SkipFirstRows := 0;
+  FWriteOnFly := false;
+  {$IFDEF QI_UNICODE}
+  FEncoding := ctWinDefined;
+  {$ENDIF}
+  FDocumentType := xtDataPacket2; //xtAccess; 
+end;
+
+procedure TQImport3XML.BeforeImport;
+begin
+  FXML := TXMLFile.Create;
+  FXML.FileName := FileName;
+  {$IFDEF QI_UNICODE}
+  FXML.Encoding := FEncoding;
+  {$ENDIF}
+  FXML.FileType := FDocumentType;
+  if FWriteOnFly
+    then FXML.Open
+    else FXML.Load(false);
+  FTotalRecCount := FXML.RowCount;
+  inherited;
+end;
+
+
+procedure TQImport3XML.AfterImport;
+begin
+  if Assigned(FXML) then begin
+    if FWriteOnFly then FXML.Close;
+    FXML.Free;
+    FXML := nil;
+  end;
+  inherited;
+end;
+
+procedure TQImport3XML.DoLoadConfiguration(IniFile: TIniFile);
+begin
+  inherited;
+  with IniFile do begin
+    SkipFirstRows := ReadInteger(XML_OPTIONS, XML_SKIP_LINES, SkipFirstRows);
+    WriteOnFly := ReadBool(XML_OPTIONS, XML_WRITE_ON_FLY, WriteOnFly);
+  end;
+end;
+
+procedure TQImport3XML.DoSaveConfiguration(IniFile: TIniFile);
+begin
+  inherited;
+  with IniFile do begin
+    WriteInteger(XML_OPTIONS, XML_SKIP_LINES, SkipFirstRows);
+    WriteBool(XML_OPTIONS, XML_WRITE_ON_FLY, WriteOnFly);
+  end;
+end;
+
+procedure TQImport3XML.StartImport;
+begin
+  FCounter := 0;
+end;
+
+
+function TQImport3XML.CheckBinaryData(AValue: qiString): Variant;
+const
+  sigBMP = #66#77;
+var
+  S: string;
+  SigPos: Integer;
+begin
+  S := QIDecodeBase64(AValue);
+  if DocumentType = xtAccess then
+  begin
+    SigPos :=  Pos(sigBMP, S);
+    if SigPos = 83 then //çàãîëîâîê MS Access
+    begin
+      Delete(S, 1, SigPos - 1);
+      Result := S;
+    end
+    else
+      Result := S;
+  end else
+    Result := S;
+end;
+
+
+function TQImport3XML.CheckCondition: boolean;
+begin
+  if FWriteOnFly then begin
+    repeat
+      if Assigned(FXMLTag) then begin
+        FXMLTag.Free;
+        FXMLTag := nil;
+      end;
+      FXMLTag := FXML.GetNextTag;
+    until (Assigned(FXMLTag) and (AnsiUpperCase(FXMLTag.Name) = 'ROW')) or FXML.Eof;
+    Result := Assigned(FXMLTag);
+  end
+  else Result := FCounter < FXML.RowCount;
+end;
+
+procedure TQImport3XML.ChangeCondition;
+begin
+  Inc(FCounter);
+end;
+
+procedure TQImport3XML.FinishImport;
+begin
+  if not Canceled and not IsCSV then
+  begin
+    if CommitAfterDone then
+      DoNeedCommit
+    else if (CommitRecCount > 0) and ((ImportedRecs + ErrorRecs) mod CommitRecCount > 0) then
+      DoNeedCommit;
+  end;
+end;
+
+function TQImport3XML.GetBitesValue(const AValue: qiString): Variant;
+begin
+  Result := inherited GetBitesValue(CheckBinaryData(AValue));
+end;
+
+function TQImport3XML.GetDateTimeValue(const AValue: qiString): Variant;
+var
+  S,N: qiString;
+  Y,M,D,H,Mi,Se, I: Integer;
+  Symbol: qiChar;
+
+  function GetStrToInt(AStr: qiString; ADat: Integer): Integer;
+  begin
+    {$IFDEF VCL6}
+     TryStrToInt(AStr, ADat);
+     Result := ADat;
+    {$ELSE}
+      Result := StrToInt(AStr);
+    {$ENDIF}
+  end;
+
+begin
+ Y := 0;
+ M := 0;
+ D := 0;
+ H := 0;
+ Mi := 0;
+ Se := 0;
+ if DocumentType = xtAccess then
+ begin
+   S := AValue;
+   N := S;
+   for I := 0 to 5 do
+   begin
+     case I of
+      0,1: Symbol := '-';
+        2: Symbol := 'T';
+      else
+        Symbol := ':'
+     end;
+     if I <> 5 then S := Copy(N,1, Pos(Symbol, N) - 1) else S := N;
+     N := Copy(N, Length(S) + 2, Length(N));
+     case I of
+       0: Y := GetStrToInt(S, Y);
+       1: M := GetStrToInt(S, M);
+       2: D := GetStrToInt(S, D);
+       3: H := GetStrToInt(S, H);
+       4: Mi := GetStrToInt(S, Mi);
+       5: Se := GetStrToInt(S, Se);
+     end;
+   end;
+   {$IFDEF VCL6}
+   Result := EncodeDateTime(Y,M,D,H,Mi,Se,0);
+   {$ELSE}
+    Result := EncodeDate(Y,M,D);
+   {$ENDIF}
+ end else
+   Result := inherited GetDateTimeValue(AValue);
+end;
+
+
+function TQImport3XML.GetFloatValue(const AValue: qiString;
+  const AFieldType: TFieldType): Variant;
+begin
+  Result := inherited GetFloatValue(CorrectStr(AValue), AFieldType);
+end;
+
+function TQImport3XML.GetIntegerValue(const AValue: qiString;
+  const AFieldType: TFieldType): Variant;
+begin
+  Result := inherited GetIntegerValue(CorrectStr(AValue), AFieldType);
+end;
+
+function TQImport3XML.GetStringValue(const AValue: qiString;
+  const AFieldType: TFieldType): Variant;
+begin
+  case AFieldType of
+      ftBlob,ftOraClob,ftOraBlob:  Result := CheckBinaryData(AValue);
+      ftString,
+      ftWideString: Result := inherited GetStringValue(CorrectStr(AValue), AFieldType);
+    else
+      Result := inherited GetStringValue(AValue, AFieldType);
+  end;
+end;
+
+procedure TQImport3XML.FillImportRow;
+var
+  j, k, l: integer;
+  StrValue: qiString;
+  mapValue: qiString;
+  p: Pointer;
+begin
+  FImportRow.ClearValues;
+
+  if not FWriteOnFly and not Assigned(FXML.Rows) then Exit;
+
+  RowIsEmpty := True;
+  for j := 0 to FImportRow.Count - 1 do
+  begin
+    if FImportRow.MapNameIdxHash.Search(FImportRow[j].Name, p) then
+    begin
+      k := Integer(p);
+
+      if FWriteOnFly then
+      begin
+        if Assigned(FXMLTag) then
+        begin
+          l := FXMLTag.Attributes.IndexOfName(FImportRow[j].Name);
+          StrValue := '';
+          if l > -1 then
+            StrValue := FXMLTag.Attributes.Values[FImportRow[j].Name];
+          FXMLTag.Free;
+          FXMLTag := nil;
+          FXMLTag := FXML.GetNextTag;
+        end;
+      end
+      else begin
+{$IFDEF VCL7}
+        mapValue := Map.ValueFromIndex[k];
+{$ELSE}
+        mapValue := Map.Values[FImportRow[j].Name];
+{$ENDIF}
+
+
+          StrValue := FXML.Rows[FCounter].Attributes.Values[Trim(mapValue)];
+      end;
+
+      StrValue := StringReplace(StrValue, sQuotEncode, sQuot, [rfReplaceAll, rfIgnoreCase]);
+      StrValue := StringReplace(StrValue, sAmpEncode, sAmp, [rfReplaceAll, rfIgnoreCase]);
+      StrValue := StringReplace(StrValue, sLtEncode, sLt, [rfReplaceAll, rfIgnoreCase]);
+      StrValue := StringReplace(StrValue, sGtEncode, sGt, [rfReplaceAll, rfIgnoreCase]);
+      StrValue := StringReplace(StrValue, sSpEncode, sSp, [rfReplaceAll, rfIgnoreCase]);
+
+      if AutoTrimValue then
+        StrValue := Trim(StrValue);
+      RowIsEmpty := RowIsEmpty and (StrValue = '');
+      FImportRow.SetValue(Map.Names[k], StrValue, false);
+    end;
+    DoUserDataFormat(FImportRow[j]);
+  end;
+end;
+
+function TQImport3XML.Skip: boolean;
+begin
+  Result := (SkipFirstRows > 0) and (FCounter < SkipFirstRows);
+end;
+
+function TQImport3XML.ImportData: TQImportResult;
+begin
+  Result := qirOk;
+  try
+    try
+      if Canceled  and not CanContinue then begin
+        Result := qirBreak;
+        Exit;
+      end;
+
+      DataManipulation;
+
+    except
+      on E:Exception do begin
+        try
+          DestinationCancel;
+        except
+        end;
+        DoImportError(E);
+        Result := qirContinue;
+        Exit;
+      end;
+    end;
+  finally
+    if (not IsCSV) and (CommitRecCount > 0) and not CommitAfterDone and
+       (
+        ((ImportedRecs + ErrorRecs) > 0)
+        and ((ImportedRecs + ErrorRecs) mod CommitRecCount = 0)
+       )
+    then
+      DoNeedCommit;
+    if (ImportRecCount > 0) and
+       ((ImportedRecs + ErrorRecs) mod ImportRecCount = 0) then
+      Result := qirBreak;
+  end;
+end;
+
+
+procedure ParseAccessXMLFields(XMLFile: TXMLFile; const XML: String);
+var
+  SchemaXML: TXMLFile;
+  ch: Char;
+  st: TxmlState;
+  buf: QIString;
+  DataTag, MetaTag, FieldsTag, RowsTag: TXMLTag;
+  NoSpaces: QIString;
+  SchemaName: qiString;
+  NoSchema: Boolean;
+
+  function FindSchemaFile: string;
+  var
+    PosName, PosFinish: Integer;
+  begin
+    Result := '';
+    PosName := Pos('xsi:noNamespaceSchemaLocation="', XML);
+    if (PosName > 0) then
+    begin
+      PosFinish := Pos('"', Copy(XML, PosName + 31, 100));
+      Result := Copy(XML, PosName + 31, PosFinish - 1);
+      Result := ExtractFilePath(XMLFile.FileName) + Result;
+      Result := CorrectStr(Result);
+      if not FileExists(Result) then
+        raise Exception.CreateFmt(sSchemaNotFound, [Result]);
+   end else
+      Exit;
+  end;
+
+  procedure PrepareTagStructure;
+  begin
+      XMLFile.Tags.Clear;
+      DataTag := XMLFile.Tags.Add;
+      DataTag.Name := sDataPacket;
+      MetaTag := DataTag.Children.Add;
+      MetaTag.Name := sMetaData;
+      FieldsTag := MetaTag.Children.Add;
+      FieldsTag.Name := sFields;
+      RowsTag := DataTag.Children.Add;
+      RowsTag.Name := sRowData;
+  end;
+
+  function ParseAccXMLTag(AStr: String; AXML: TXMLFile): TXMLTag;
+   var
+     TagName, TempStr: String;
+     NamePos, TypePos: Integer;
+  begin
+    NamePos := Pos('xsd:element name="', AStr);
+    if (NamePos > 0) then
+    begin
+      TagName := StringReplace(AStr,'xsd:element name="','',[]);
+      TagName := Copy(TagName,1, Pos('"', TagName) - 1);
+      TempStr := AnsiLowerCase(Copy(AStr, NamePos, Length(AStr)));
+      TypePos := Pos('od:sqlstype="', TempStr);
+      if (TypePos > 0) then
+      begin
+        TempStr := Copy(TempStr, TypePos + 13, Length(TempStr));
+        TempStr := Copy(TempStr, 1, Pos('"', TempStr) -1);
+        Result := FieldsTag.Children.Add;
+        Result.Name := sField;
+        Result.Attributes.Add('FieldName=' + TagName);
+        Result.Attributes.Add('DisplayLabel=' + TagName);
+        Result.Attributes.Add('FieldType=' + TempStr);
+        Result.Attributes.Add('FieldClass="TField"');
+      end else Result := nil;
+    end else Result := nil;
+  end;
+
+begin
+  PrepareTagStructure;
+  SchemaName := FindSchemaFile;
+  NoSchema := Length(SchemaName) = 0;
+  if not NoSchema then
+  begin
+    SchemaXML := TXMLFile.Create;
+    SchemaXML.FileName := SchemaName;
+    try
+      SchemaXML.Open;
+      NoSpaces := QIString(SchemaXML.FData);
+      NoSpaces := StringReplace(Nospaces, #32, '', [rfReplaceAll]);
+
+      buf := EmptyStr;
+      st := stWaitTag;
+      SchemaXML.FPosition := 1;
+  //i := 1;
+
+      while SchemaXML.FPosition <{=} Length(SchemaXML.FData) do begin
+        ch := Char(SchemaXML.FData[SchemaXML.FPosition]);
+
+        case st of
+        stWaitTag: begin
+          if QImport3Common.CharInSet(ch, sWhiteSpace) then
+            st := stWaitTag
+          else if ch = sLt then begin
+            st := stReadTag;
+            buf := EmptyStr;
+            Inc(SchemaXML.FPosition);
+            Continue;
+          end;
+        end;
+        stReadTag: begin
+           if ch = sGt then begin
+            ParseAccXMLTag(buf, XMLFile);
+            buf := EmptyStr;
+            st := stWaitTag;
+          end;
+        end;
+        stBreak: Exit;
+      end;
+
+      buf := buf + ch;
+      Inc(SchemaXML.FPosition);
+      end;
+    SchemaXML.FEof := true;
+    finally
+      SchemaXML.Close;
+      SchemaXML.Free;
+    end;
+  end;
+  ParseAccessXMLData(XMLFile, String(XMLFile.FData), RowsTag, FieldsTag, NoSchema);
+end;
+
+procedure ParseAccessXMLData(XMLFile: TXMLFile; const XML: String;
+RowsTag, FieldsTag: TXMLTag; const NoSchema: Boolean);
+var
+  ch: Char;
+  st: TxmlState;
+  buf, LastField: String;
+  FieldNames, databuf, attrnames: TStringList;
+  FieldsAdded: Integer; //ñ÷åò÷èê äîáàâëåíèÿ ïîëåé (åñëè íåò ñõåìû)
+
+  procedure GetFieldNames(AStrings: TStrings);
+  var
+    S: string;
+    I: Integer;
+  begin
+    if FieldsTag.Children.Count = 0 then
+      Exit;
+    S := '';
+    AStrings.Clear;
+    for I := 0 to FieldsTag.Children.Count - 1 do
+      AStrings.Add(CorrectStr2(StringReplace(FieldsTag.Children.Items[I].Attributes[0],'FieldName=','',[rfReplaceAll])));
+    LastField := AStrings[FieldsTag.Children.Count - 1];
+  end;
+
+  function IsField(AName: String): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    for I := 0 to FieldNames.Count - 1 do
+      if AnsiCompareText(AName, FieldNames[I]) = 0 then
+      begin
+        Result := True;
+        Break;
+      end;
+  end;
+
+  function FindTagEnd(Start: Integer; AStr, AName: string): Integer;
+  var
+    I: Integer;
+    buff: string;
+    stt: TxmlTagState;
+  begin
+    Result := 0;
+    I := Start;
+    buff := EmptyStr;
+    stt := tstWaitAttrName;
+    while I < Length(AStr) do
+    begin
+      case stt of
+        tstWaitAttrName:
+          begin
+            if (I + 1 < Length(AStr)) and
+              (AStr[I] = sLt) and (AStr[I+1] = sSlash) then
+            begin
+              Result := I - 1;
+              stt := tstReadAttrName;
+              Inc(I);
+            end;
+            Inc(I);
+            Continue;
+          end;
+       tstReadAttrName:
+         begin
+           if not QImport3Common.CharInSet(AStr[I], sWhiteSpaceName) then
+           begin
+             buff := buff + AStr[I];
+             if AnsiCompareText(Trim(buff), AName) = 0 then
+               Break;
+           end;
+           Inc(I);
+           Continue;
+         end;
+      end;
+    end;
+  end;
+
+  function ParseTagData(AName: String): TXMLTag;
+  var
+    TempData: string;
+    EndData, K: Integer;
+  begin
+    Result := nil;
+    if NoSchema then //ïîñìîòðèì, âñå ëè ïîëÿ äîáàâèëè (åñëè íåò ñõåìû)
+    begin
+      if (FieldsAdded >= 0) then
+        if (FieldsAdded <> FieldNames.Count) then
+        begin
+          FieldsAdded := FieldNames.Count;
+          Exit;
+        end
+        else begin
+          FieldNames.Clear;
+          GetFieldNames(FieldNames);
+          FieldsAdded := -1;
+          XMLFile.FPosition := 1; //ïðîéäåìñÿ åùå ðàç óæå ñ çàïîëíåíèåì äàííûõ
+          Exit;
+        end;
+    end;
+    EndData := FindTagEnd(XMLFile.FPosition, XML, AName);
+    if EndData > 0 then
+    begin
+      TempData := Copy(XML, XMLFile.FPosition + 1, EndData - XMLFile.FPosition);
+      databuf.Add(CorrectStr(AName) + '=' + TempData);
+      attrnames.Add(AName);
+      XMLFile.FPosition := EndData;
+      if AnsiCompareStr(AName, LastField) = 0 then
+      begin
+        Result := RowsTag.Children.Add;
+        Result.Name := sRow;
+        for K := 0 to databuf.Count - 1 do
+          Result.Attributes.Add(databuf[K]);
+        for K := 0 to attrnames.Count - 1 do
+          Result.FAttrNames.Add(CorrectStr(attrnames[K]));
+        databuf.Clear;
+        attrnames.Clear;
+      end;
+    end;
+  end;
+
+  function ParseNoSchemaTag(AName: QIString): TXMLTag;
+   var
+     InStr: Integer;
+     SS, NoSpaces: QIString;
+  begin
+    Result := nil;
+    NoSpaces := StringReplace(Copy(XML, XMLFile.FPosition - Length(AName), Length(XML)),#32,'',[rfReplaceAll]);
+    InStr := Pos(AName, NoSpaces);
+    if InStr > 0 then
+    begin
+      SS :=  Copy(NoSpaces, InStr + Length(AName), Length(NoSpaces));
+      if (SS[1] <> sGt) or (Pos(sSlash, AName) = 1) then
+        Exit
+      else begin
+        if (Pos(sGt, Copy(SS, 2, Length(SS))) > 0) and
+          (Pos(sLt + sSlash + AName, Copy(SS, 2, Length(SS))) < Pos(sGt, Copy(SS, 2, Length(SS)))) then
+          begin
+           Result := FieldsTag.Children.Add;
+           Result.Name := sField;
+           Result.Attributes.Add('FieldName=' + AName);
+           Result.Attributes.Add('DisplayLabel=' + AName);
+           Result.Attributes.Add('FieldType=varchar');
+           Result.Attributes.Add('FieldClass="TField"');
+           if FieldNames.IndexOf(AName) = -1 then
+             FieldNames.Add(AName);
+            ParseTagData(AName);
+          end;
+      end;
+    end;
+  end;
+
+begin
+  XMLFile.FPosition := 1;
+  st := stWaitTag;
+  buf := EmptyStr;
+  FieldsAdded := 0;
+  FieldNames := TStringList.Create;
+  databuf := TStringList.Create;
+  attrnames := TStringList.Create;
+  try
+    if not NoSchema then
+      GetFieldNames(FieldNames);
+    while XMLFile.FPosition <{=} Length(XMLFile.FData) do begin
+      ch := XML[XMLFile.FPosition];
+
+      case st of
+        stWaitTag: begin
+          if QImport3Common.CharInSet(ch, sWhiteSpace) then
+            st := stWaitTag
+          else if ch = sLt then begin
+            st := stReadTag;
+            buf := EmptyStr;
+            Inc(XMLFile.FPosition);
+            Continue;
+          end;
+        end;
+        stReadTag: begin
+          if ch = sGt then begin
+            if IsField(buf) then
+              ParseTagData(buf)
+            else
+              if NoSchema then
+                ParseNoSchemaTag(buf);
+            buf := EmptyStr;
+            st := stWaitTag;
+          end;
+        end;
+        stBreak: Exit;
+      end;
+      buf := buf + ch;
+      Inc(XMLFile.FPosition);
+    end;
+  finally
+    FieldNames.Free;
+    databuf.Free;
+    attrnames.Free;
+  end;
+end;
+
+
+
+function CorrectStr(AStr: QIString): QIString;
+begin
+  {$IFDEF QI_UNICODE}
+    {$IFNDEF VER130}
+    {$IFDEF VCL12}
+    Result := UTF8Decode(RawByteString(AStr));
+    {$ELSE}
+    Result := UTF8Decode(AStr);
+    {$ENDIF}
+    {$ELSE}
+     Result := AStr;
+    {$ENDIF}
+  {$ELSE}
+    Result := AStr;
+  {$ENDIF}
+end;
+
+
+function CorrectStr2(AStr: QIString): QIString;
+begin
+  {$IFDEF QI_UNICODE}
+    {$IFNDEF VER130}
+    {$IFDEF VCL12}
+    Result := QIString(UTF8Encode(AStr));
+    {$ELSE}
+    Result := UTF8Encode(AStr);
+    {$ENDIF}
+    {$ELSE}
+     Result := AStr;
+    {$ENDIF}
+  {$ELSE}
+    Result := AStr;
+  {$ENDIF}
+end;
+
+end.
+

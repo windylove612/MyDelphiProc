@@ -1,0 +1,65 @@
+package QImport3DT_D14;
+
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'EMS Advanced Import Component Suite'}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+{$DEFINE HTML}
+{$DEFINE XMLDOC}
+{$DEFINE ADO}
+{$DEFINE DOCX}
+{$DEFINE XLSX}
+{$DEFINE ODS}
+{$DEFINE ODT}
+{$DEFINE VCL4}
+{$DEFINE VCL5}
+{$DEFINE VCL6}
+{$DEFINE VCL7}
+{$DEFINE VCL9}
+{$DEFINE VCL10}
+
+requires
+  vcl,
+  vcldb,
+  QImport3RT_D14,
+  designide,
+  rtl,
+  dbrtl;
+
+contains
+  fuQImport3CSVEditor in 'fuQImport3CSVEditor.pas' {fmQImport3CSVEditor},
+  fuQImport3DataSetEditor in 'fuQImport3DataSetEditor.pas' {fmQImport3DataSetEditor},
+  fuQImport3DBFEditor in 'fuQImport3DBFEditor.pas' {fmQImport3DBFEditor},
+  fuQImport3FormatsEditor in 'fuQImport3FormatsEditor.pas' {fmQImport3FormatsEditor},
+  fuQImport3TXTEditor in 'fuQImport3TXTEditor.pas' {fmQImport3TXTEditor},
+  fuQImport3XLSEditor in 'fuQImport3XLSEditor.pas' {fmQImport3XLSEditor},
+  fuQImport3XMLEditor in 'fuQImport3XMLEditor.pas' {fmQImport3XMLEditor},
+  fuQImport3HTMLEditor in 'fuQImport3HTMLEditor.pas' {fmQImport3HTMLEditor},
+  fuQImport3XMLDocEditor in 'fuQImport3XMLDocEditor.pas' {fmQImport3XMLDocEditor},
+  fuQImport3ODSEditor in 'fuQImport3ODSEditor.pas' {fmQImport3ODSEditor},
+  fuQImport3ODTEditor in 'fuQImport3ODTEditor.pas' {fmQImport3ODTEditor},
+  fuQImport3XlsxEditor in 'fuQImport3XlsxEditor.pas' {fmQImport3XlsxEditor},
+  fuQImport3DocxEditor in 'fuQImport3DocxEditor.pas' {fmQImport3DocxEditor},
+  QImport3Reg in 'QImport3Reg.pas';
+
+end.

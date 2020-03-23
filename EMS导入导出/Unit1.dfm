@@ -1,0 +1,57 @@
+object Form1: TForm1
+  Left = 378
+  Top = 120
+  Width = 605
+  Height = 480
+  Caption = 'Form1'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  PixelsPerInch = 96
+  TextHeight = 13
+  object RzButton1: TRzButton
+    Left = 192
+    Top = 304
+    Caption = 'RzButton1'
+    TabOrder = 0
+    OnClick = RzButton1Click
+  end
+  object Table1: TTable
+    Left = 344
+    Top = 200
+    object Table1HYK_NO: TStringField
+      FieldName = 'HYK_NO'
+    end
+  end
+  object QImport3Xlsx1: TQImport3Xlsx
+    ImportEmptyRows = False
+    DataSet = Table1
+    Formats.DecimalSeparator = '.'
+    Formats.ThousandSeparator = ','
+    Formats.DateSeparator = '/'
+    Formats.TimeSeparator = ':'
+    Formats.BooleanTrue.Strings = (
+      'True')
+    Formats.BooleanFalse.Strings = (
+      'False')
+    Formats.NullValues.Strings = (
+      'Null')
+    Formats.ShortDateFormat = 'yyyy/MM/dd'
+    Formats.LongDateFormat = 'yyyy'#39#24180#39'M'#39#26376#39'd'#39#26085#39
+    Formats.ShortTimeFormat = 'h:mm'
+    Formats.LongTimeFormat = 'h:mm:ss'
+    FieldFormats = <>
+    ErrorLogFileName = 'error.log'
+    CommitRecCount = 10000
+    AddType = qatInsert
+    SheetName = 'Sheet1'
+    Left = 80
+    Top = 88
+  end
+end

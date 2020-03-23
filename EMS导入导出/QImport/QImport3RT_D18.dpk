@@ -1,0 +1,134 @@
+package QImport3RT_D18;
+
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'EMS Advanced Import Component Suite'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+{$DEFINE HTML}
+{$DEFINE XMLDOC}
+{$DEFINE ADO}
+{$DEFINE DOCX}
+{$DEFINE XLSX}
+{$DEFINE ODS}
+{$DEFINE ODT}
+{$DEFINE VCL4}
+{$DEFINE VCL5}
+{$DEFINE VCL6}
+{$DEFINE VCL7}
+{$DEFINE VCL9}
+{$DEFINE VCL10}
+{$DEFINE VCL11}
+{$DEFINE VCL12}
+{$WARN SYMBOL_DEPRECATED OFF}
+{$WARN SYMBOL_PLATFORM OFF}
+
+requires
+  vcl,
+  vcldb,
+  rtl,
+  dbrtl,
+  vclx,
+  vclie,
+  adortl,
+  xmlrtl,
+  soaprtl;
+
+contains
+  QImport3 in 'QImport3.pas',
+  QImport3ASCII in 'QImport3ASCII.pas',
+  QImport3DBF in 'QImport3DBF.pas',
+  QImport3XLS in 'QImport3XLS.pas',
+  QImport3DataSet in 'QImport3DataSet.pas',
+  fuQImport3About in 'fuQImport3About.pas' {fmQImport3About},
+  QImport3XML in 'QImport3XML.pas',
+  QImport3TXTView in 'QImport3TXTView.pas',
+  QImport3StrIDs in 'QImport3StrIDs.pas',
+  fuQImport3License in 'fuQImport3License.pas' {fmQImport3License},
+  fuQImport3Loading in 'fuQImport3Loading.pas' {fmQImport3Loading},
+  fuQImport3ProgressDlg in 'fuQImport3ProgressDlg.pas' {fmQImport3ProgressDlg},
+  fuQImport3ReplacementEdit in 'fuQImport3ReplacementEdit.pas' {fmQImport3ReplacementEdit},
+  fuQImport3XLSRangeEdit in 'fuQImport3XLSRangeEdit.pas' {fmQImport3XLSRangeEdit},
+  QImport3Wizard in 'QImport3Wizard.pas' {QImport3WizardF},
+  QImport3XMLDoc in 'QImport3XMLDoc.pas',
+  ADO_QImport3Access in 'ADO_QImport3Access.pas',
+  QImport3HTML in 'QImport3HTML.pas',
+  QImport3Common in 'QImport3Common.pas',
+  QImport3Xlsx in 'QImport3Xlsx.pas',
+  QImport3XlsxDom in 'QImport3XlsxDom.pas',
+  QImport3Docx in 'QImport3Docx.pas',
+  QImport3StrTypes in 'QImport3StrTypes.pas',
+  QImport3crc in 'QImport3crc.pas',
+  QImport3ODS in 'QImport3ODS.pas',
+  QImport3ODT in 'QImport3ODT.pas',
+
+  QImport3gzIO in 'QImport3gzio.pas',
+  QImport3ZUtil in 'QImport3zutil.pas',
+  QImport3Adler in 'QImport3ADLER.PAS',
+  QImport3DBFFile in 'QImport3DBFFile.pas',
+  QImport3XLSMapParser in 'QImport3XLSMapParser.pas',
+  QImport3XLSUtils in 'QImport3XLSUtils.pas',
+  QImport3XLSConsts in 'QImport3XLSConsts.pas',
+  QImport3XLSFile in 'QImport3XLSFile.pas',
+  QImport3XLSCommon in 'QImport3XLSCommon.pas',
+  QImport3WideStrings in 'QImport3WideStrings.pas',
+  QImport3InfoPanel in 'QImport3InfoPanel.pas',
+  QImport3XLSCalculate in 'QImport3XLSCalculate.pas',
+  QImport3WideStringCanvas in 'QImport3WideStringCanvas.pas',
+  QImport3CustomControl in 'QImport3CustomControl.pas',
+  QImport3WideStringGrid in 'QImport3WideStringGrid.pas',
+  QImport3BaseDocumentFile in 'QImport3BaseDocumentFile.pas',
+  QImport3InfBlock in 'QImport3infblock.pas',
+  QImport3InfCodes in 'QImport3infcodes.pas',
+  QImport3InfFast in 'QImport3inffast.pas',
+  QImport3InfTrees in 'QImport3inftrees.pas',
+  QImport3infutil in 'QImport3infutil.pas',
+  QImport3libdatei in 'QImport3libdatei.pas',
+  QImport3trees in 'QImport3trees.pas',
+  QImport3uCommon in 'QImport3uCommon.pas',
+  QImport3Unzip in 'QImport3Unzip.pas',
+  QImport3zCompres in 'QImport3zcompres.pas',
+  QImport3zDeflate in 'QImport3ZDEFLATE.PAS',
+  QImport3zInflate in 'QImport3ZINFLATE.PAS',
+  QImport3zip in 'QImport3zip.pas',
+  QImport3ZipMcpt in 'QImport3ZipMcpt.pas',
+  QImport3ziputils in 'QImport3ziputils.pas',
+  QImport3Zlib110 in 'QImport3Zlib110.pas',
+  QImport3zUnCompr in 'QImport3zuncompr.pas',
+  QImport3GpTextStream in 'QImport3GpTextStream.pas',
+  QImport3GPHugeF in 'QImport3gphugef.pas',
+  QImport3GpStreamWrapper in 'QImport3GpStreamWrapper.pas',
+  QImport3GpTextFile in 'QImport3GpTextFile.pas',
+  QImport3DSiWin32 in 'QImport3DSiWin32.pas',
+  QImport3WideStrUtils in 'QImport3WideStrUtils.pas',
+  QImport3EzdslThd in 'QImport3EZDSLTHD.PAS',
+  QImport3EzdslBse in 'QImport3EZDSLBSE.PAS',
+  QImport3EzdslCts in 'QImport3EZDSLCTS.PAS',
+  QImport3EZDSLHsh in 'QImport3EZDSLHSH.PAS',
+  QImport3EzdsLLst in 'QImport3EZDSLLST.PAS',
+  QImport3XlsxMapParser in 'QImport3XlsxMapParser.pas',
+  QImport3EzdslSup in 'QImport3EZDSLSUP.PAS',
+  QImport3JScriptEngine in 'QImport3JScriptEngine.PAS',
+  QImport3MSScriptControlTLB in 'QImport3MSScriptControlTLB.PAS',
+  QImport3ScriptEngine in 'QImport3ScriptEngine.PAS';
+
+end.

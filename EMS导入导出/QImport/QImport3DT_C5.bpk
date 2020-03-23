@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="QImport3DT_C5.bpl"/>
+    <OBJFILES value="fuQImport3XMLEditor.obj QImport3Reg.obj fuQImport3CSVEditor.obj 
+      fuQImport3DataSetEditor.obj fuQImport3DBFEditor.obj 
+      fuQImport3FormatsEditor.obj fuQImport3TXTEditor.obj 
+      fuQImport3XLSEditor.obj QImport3DT_C5.obj"/>
+    <RESFILES value=""/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) fuQImport3XMLEditor.dfm fuQImport3CSVEditor.dfm 
+      fuQImport3DataSetEditor.dfm fuQImport3DBFEditor.dfm 
+      fuQImport3FormatsEditor.dfm fuQImport3TXTEditor.dfm fuQImport3XLSEditor.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value=""/>
+    <SPARELIBS value="Vcl50.lib Vcldb50.lib Vclx50.lib"/>
+    <PACKAGES value="vcl50.bpi Vcldb50.bpi QImport3RT_C5.bpi Vclx50.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="tlink32"/>
+    <USERDEFINES value="_DEBUG;ADO"/>
+    <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
+    <MAINSOURCE value="QImport3DT_C5.cpp"/>
+    <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="&quot;c:\program files\borland\cbuilder5\projects\lib\&quot;;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\Source\ToolsAPI"/>
+    <WARNINGS value="-w-par"/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -D_DEBUG -DADO -boa"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
+      -tWM"/>
+    <PFLAGS value="-$YD -$W -$O- -v -JPHNE -M -LUvcl50"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zd"/>
+    <LFLAGS value="-D&quot;EMS Advanced Import Component Suite 3&quot; -aa -Tpp -Gpd -x -Gn -Gl -Gi -v"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+  </IDEOPTIONS>
+</PROJECT>

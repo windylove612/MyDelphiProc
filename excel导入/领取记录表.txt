@@ -1,0 +1,7 @@
+create table BFCRM8.HYK_LPFFTMPJL(
+     HYID   number(10)  not   null,
+     HYK_NO  varchar2(20)  not null,
+     BJ_CL  number(1)  default 0 null,  --0未领取1已领取
+constraint PK_HYK_LPFFTMPJL primary key(HYID)
+);
+

@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="QImport3RT_C5.bpl"/>
+    <OBJFILES value="fuQImport3ProgressDlg.obj QImport3XLS.obj QImport3.obj QImport3ASCII.obj 
+      QImport3DBF.obj QImport3XLSMapParser.obj QImport3XLSUtils.obj 
+      QImport3XLSCalculate.obj QImport3XLSCommon.obj QImport3XLSConsts.obj 
+      QImport3XLSFile.obj fuQImport3About.obj fuQImport3Loading.obj 
+      QImport3Common.obj QImport3DataSet.obj fuQImport3ReplacementEdit.obj 
+      fuQImport3XLSRangeEdit.obj QImport3InfoPanel.obj QImport3TXTView.obj 
+      QImport3XML.obj QImport3DBFFile.obj QImport3Wizard.obj 
+      fuQImport3License.obj QImport3WideStrUtils.obj QImport3CustomControl.obj 
+      QImport3WideStringCanvas.obj QImport3WideStringGrid.obj 
+      QImport3WideStrings.obj QImport3EZDSLTHD.obj QImport3EZDSLBSE.obj 
+      QImport3EZDSLCTS.obj QImport3EZDSLHSH.obj QImport3EZDSLLST.obj 
+      QImport3EZDSLSUP.obj QImport3zutil.obj QImport3ADLER.obj QImport3crc.obj 
+      QImport3gzio.obj QImport3infblock.obj QImport3infcodes.obj 
+      QImport3inffast.obj QImport3inftrees.obj QImport3infutil.obj 
+      QImport3libdatei.obj QImport3trees.obj QImport3uCommon.obj 
+      QImport3Unzip.obj QImport3zcompres.obj QImport3ZDEFLATE.obj 
+      QImport3ZINFLATE.obj QImport3zip.obj QImport3ZipMcpt.obj 
+      QImport3ziputils.obj QImport3Zlib110.obj QImport3zuncompr.obj 
+      QImport3BaseDocumentFile.obj QImport3RT_C5.obj"/>
+    <RESFILES value=""/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) fuQImport3ProgressDlg.dfm fuQImport3About.dfm 
+      fuQImport3Loading.dfm fuQImport3ReplacementEdit.dfm 
+      fuQImport3XLSRangeEdit.dfm QImport3Wizard.dfm fuQImport3License.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value="vclie50.lib"/>
+    <SPARELIBS value="Vcl50.lib Vcldb50.lib Vclx50.lib vclado50.lib vclie50.lib"/>
+    <PACKAGES value="vcl50.bpi Vcldb50.bpi Vclx50.bpi vclado50.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="tlink32"/>
+    <USERDEFINES value="ADO"/>
+    <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
+    <MAINSOURCE value="QImport3RT_C5.cpp"/>
+    <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par"/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -DADO -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a8 -b- -k- -vi -c -tWM"/>
+    <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zn"/>
+    <LFLAGS value="-D&quot;EMS Advanced Import Component Suite 3&quot; -aa -Tpp -Gpr -x -Gn -Gl -Gi"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+
+  </IDEOPTIONS>
+</PROJECT>
